@@ -13,7 +13,7 @@ setup(
     description="Package to help analyze jwst data",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/my_project",  # Optional
+    url="https://github.com/bdrechsler/jwst_analysis.git",  # Optional
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",  # Choose appropriate license
