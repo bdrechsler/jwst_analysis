@@ -11,35 +11,15 @@ class Cube:
         self.wvl_axis = wvl_axis
         self.wcs = wcs
 
-    @classmethod
-    def read(cls, filename, extname='SCI'):
-        """Read in file to create cube object
+    def combine_cubes(self, new_cube):
+        """Align and combine the cube with another cube
 
         Args:
-            filename (str): path to input file
+            new_cube (Cube): Second cube object
+
+        Returns:
+            combined_cube (cube): combined cube object
         """
-        # get the data and header
-        data, header = fits.getdata(filename, extname=extname, header=True)
-
-        # get wcs object
-        wcs = WCS(header)
-
-        # Convert data to Jy if necessary
-        if header['BUNIT'] == "MJy/sr":
-            pix_area = header["PIXAR_SR"]
-            data = data * 1.0e6 * pix_area
-            header['BUNIT'] = "Jy"
-
-        # get wavelength axis
-        start_wvl = header["CRVAL3"]
-        wvl_step = header["CDELT3"]
-        nchan = header["NAXIS3"]
-        wvl_axis = (np.arange(nchan) * wvl_step) + start_wvl
-
-        return cls(data=data, header= header, wvl_axis=wvl_axis, wcs=wcs)
-
-    def combine_cubes(self, new_cube):
-
         # take median to get representative image
         img1 = np.nan_to_num(np.nanmedian(self.data, axis=0))
         img2 = np.nan_to_num(np.nanmedian(new_cube.data, axis=0))
@@ -134,7 +114,36 @@ class Cube:
         return Cube(data=combined_cube, header=combined_header,
                     wvl_axis=new_cube.wvl_axis, wcs=combined_wcs)
 
+    @classmethod
+    def read(cls, filename, extname='SCI'):
+        """Read in file to create cube object
 
+        Args:
+            filename (str): path to input file
+        """
+        # get the data and header
+        data, header = fits.getdata(filename, extname=extname, header=True)
+
+        # get wcs object
+        wcs = WCS(header)
+
+        # Convert data to Jy if necessary
+        if header['BUNIT'] == "MJy/sr":
+            pix_area = header["PIXAR_SR"]
+            data = data * 1.0e6 * pix_area
+            header['BUNIT'] = "Jy"
+
+        # get wavelength axis
+        start_wvl = header["CRVAL3"]
+        wvl_step = header["CDELT3"]
+        nchan = header["NAXIS3"]
+        wvl_axis = (np.arange(nchan) * wvl_step) + start_wvl
+
+        return cls(data=data, header= header, wvl_axis=wvl_axis, wcs=wcs)
+
+    def write(self, filename):
+        hdu = fits.PrimaryHDU(data=self.data, header=self.header)
+        hdu.writeto(filename, overwrite=True)
 
 
 
