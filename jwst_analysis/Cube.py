@@ -2,6 +2,7 @@ import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
 from scipy.signal import correlate2d
+from .Line import Line
 
 class Cube:
     def __init__(self, data, header, wvl_axis, wcs):
@@ -10,6 +11,15 @@ class Cube:
         self.header = header
         self.wvl_axis = wvl_axis
         self.wcs = wcs
+
+        # check if a line has been attached to this cube
+        header_keys = list(header.keys())
+        if 'REST_WVL' in header_keys:
+            self.line = Line(rest_wvl=header['REST_WVL'],
+                             species=header['SPECIES'],
+                             transition=header['TRANSITION'],
+                             line_width=header['LINE_WIDTH'])
+
 
     def combine_cubes(self, new_cube):
         """Align and combine the cube with another cube
@@ -113,6 +123,19 @@ class Cube:
         # create a return a new cube object
         return Cube(data=combined_cube, header=combined_header,
                     wvl_axis=new_cube.wvl_axis, wcs=combined_wcs)
+
+    def attach_line(self, line):
+        """Attach a line object to this spectral cube
+
+        Args:
+            line (Line): The line object to denote what line this cube
+            corresponds to
+        """
+        self.line = line
+        self.header['REST_WVL'] = line.wvl
+        self.header['SPECIES'] = line.species
+        self.header['TRANSITION'] = line.transition
+        self.header['LINE_WIDTH'] = line.line_width
 
     @classmethod
     def read(cls, filename, extname='SCI'):
