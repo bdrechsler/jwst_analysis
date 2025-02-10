@@ -3,6 +3,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from scipy.signal import correlate2d
 from .Line import Line
+from .Spectrum import Spectrum
 
 class Cube:
     def __init__(self, data, header, wvl_axis, wcs):
@@ -136,6 +137,47 @@ class Cube:
         self.header['SPECIES'] = line.species
         self.header['TRANSITION'] = line.transition
         self.header['LINE_WIDTH'] = line.line_width
+
+    def cont_sub(self):
+        """Continuum subtract the spectral cube and create a continuum
+        cube and continuum subtracted cube objects
+
+        Returns:
+            cont_cube (Cube): Continuum Cube
+            cont_sub_cube (Cube): Contiuum subtracted Cube
+        """
+        # check if a line has been attached
+        if 'REST_WVL' not in list(self.header.keys()):
+            print("Attatch a line to this spectral cube before continuum \
+                  subtracting.")
+            return
+
+        # create holder arrays for continuum and continuum
+        # subtracted cubes
+        cont_data = np.zeros(self.data.shape)
+        cont_sub_data = np.zeros(self.data.shape)
+        # perform the continuum subtraction for each pixel
+        nchan, ni, nj = self.data.shape
+        for i in range(ni):
+            for j in range(nj):
+                # fit the continuum to i, j spectrum
+                pixel_spectrum = Spectrum(wvl_axis=self.wvl_axis,
+                                          flux=self.data[:,i,j])
+                continuum = pixel_spectrum.fit_continuum(self.line)
+                # get the continuum subtractede flux
+                cont_sub_flux = pixel_spectrum.flux - continuum.flux
+                # set the i, j spectrum for the cont and cont sub cubes
+                cont_data[:, i, j] = continuum.flux
+                cont_sub_data[:, i, j] = cont_sub_flux
+
+        # create continuum and continuum subtracted cube objects
+        cont_cube = Cube(data=cont_data, header=self.header,
+                         wvl_axis=self.wvl_axis, wcs=self.wcs)
+        cont_sub_cube = Cube(data=cont_sub_data, header=self.header,
+                         wvl_axis=self.wvl_axis, wcs=self.wcs)
+
+        return cont_cube, cont_sub_cube
+
 
     @classmethod
     def read(cls, filename, extname='SCI'):
