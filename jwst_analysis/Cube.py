@@ -169,6 +169,25 @@ class Cube:
         return Cube(data=region_data, header=self.header, wvl_axis=region_wvl,
                     wcs=self.wcs)
 
+    def line_cube(self, line, n_lws):
+        """Get a spectral region around a given line
+
+        Args:
+            line (Line): Line to center spectral region on
+            n_lws (float): size of spectral region in units of line widths
+
+        Returns:
+            spectral region (Cube): spectral cube around the given line with the
+            line object attached
+        """
+        # get region around the line
+        line_region = self.spectral_region(center_wvl=line.rest_wvl,
+                                           region_width=n_lws * line.line_width)
+        # attach the line
+        line_region.attach_line(line=line)
+        return line_region
+
+
     def cont_sub(self):
         """Continuum subtract the spectral cube and create a continuum
         cube and continuum subtracted cube objects
@@ -243,7 +262,6 @@ class Cube:
                                        rms=rms)
 
         return M, dM
-
 
 
     @classmethod
