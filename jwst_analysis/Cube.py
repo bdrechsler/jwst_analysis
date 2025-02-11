@@ -1,7 +1,10 @@
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
+import astropy.units as u
+from astropy.constants import c
 from scipy.signal import correlate2d
+import bettermoments as bm
 from .Line import Line
 from .Spectrum import Spectrum
 
@@ -20,6 +23,12 @@ class Cube:
                              species=header['SPECIES'],
                              transition=header['TRANSITION'],
                              line_width=header['LINE_WIDTH'])
+
+            # calculate the velocity axis
+            wvl = np.array(wvl_axis) * u.um
+            rest_wvl = self.line.rest_wvl * u.um
+            vel = c * (wvl - rest_wvl) / rest_wvl
+            self.vel_axis = vel.to(u.km/u.s).value
 
 
     def combine_cubes(self, new_cube):
@@ -199,6 +208,42 @@ class Cube:
                          wvl_axis=self.wvl_axis, wcs=self.wcs)
 
         return cont_cube, cont_sub_cube
+
+    def collapse(self, moment):
+        """Collapse the spectral cube to create a moment map.
+        There must be a line attached to the cube.
+
+        Args:
+            moment (int): which method should be used to collapse
+            the data (0,1,8)
+
+        Returns:
+            M (np.ndarray): The resulting moment map
+            dM (np.ndarray): Error on the map
+        """
+
+        # spectrally smooth the data
+        smoothed_data = bm.smooth_data(data=self.data, smooth=3, polyorder=0)
+        # estimate the noise
+        rms = bm.estimate_RMS(data=smoothed_data, N=10)
+        # create a threshold mask
+        mask = bm.get_threshold_mask(data=smoothed_data, clip=2.0,
+                                     smooth_threshold_mask=2)
+        masked_data = smoothed_data * mask
+
+        # collapse based on the desired moment map
+        if moment == 0:
+            M, dM = bm.collapse_zeroth(velax=self.vel_axis, data=masked_data,
+                                       rms=rms)
+        elif moment == 1:
+            M, dM = bm.collapse_first(velax=self.vel_axis, data=masked_data,
+                                       rms=rms)
+        elif moment == 8:
+            M, dM = bm.collapse_eighth(velax=self.vel_axis, data=masked_data,
+                                       rms=rms)
+
+        return M, dM
+
 
 
     @classmethod
