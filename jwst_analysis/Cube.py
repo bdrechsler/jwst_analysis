@@ -30,8 +30,8 @@ class Cube:
             vel = c * (wvl - rest_wvl) / rest_wvl
             self.vel_axis = vel.to(u.km/u.s).value
 
-
-    def combine_cubes(self, new_cube):
+    @staticmethod
+    def combine_cubes(old_cube, new_cube):
         """Align and combine the cube with another cube
 
         Args:
@@ -41,7 +41,7 @@ class Cube:
             combined_cube (cube): combined cube object
         """
         # take median to get representative image
-        img1 = np.nan_to_num(np.nanmedian(self.data, axis=0))
+        img1 = np.nan_to_num(np.nanmedian(old_cube.data, axis=0))
         img2 = np.nan_to_num(np.nanmedian(new_cube.data, axis=0))
 
         # take cross correlation to find offset
@@ -94,12 +94,12 @@ class Cube:
         y2 = -np.abs(y_offset) - 1
 
         # create footprint for the combined cube
-        combined_cube = np.zeros((self.data.shape[0], ny_big, nx_big))
+        combined_cube = np.zeros((old_cube.data.shape[0], ny_big, nx_big))
 
         # shift each channel
-        for i in range(self.data.shape[0]):
+        for i in range(old_cube.data.shape[0]):
             # get new and old channel
-            old_chan = np.nan_to_num(self.data[i])
+            old_chan = np.nan_to_num(old_cube.data[i])
             new_chan = np.nan_to_num(new_cube.data[i])
 
             big_chan = np.zeros((ny_big, nx_big))
