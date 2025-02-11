@@ -138,6 +138,28 @@ class Cube:
         self.header['TRANSITION'] = line.transition
         self.header['LINE_WIDTH'] = line.line_width
 
+    def spectral_region(self, center_wvl, region_width):
+        """Get a spectral region (slab) of the spectral cube
+
+        Args:
+            center_wvl (float): central wavelength of the region [um]
+            region_width (float): width of the spectral region [um]
+
+        Returns:
+            spectral_region (Cube): region of spectral cube within spectral
+            window
+        """
+        wvl_min = center_wvl - (region_width / 2.)
+        wvl_max = center_wvl + (region_width / 2.)
+
+        region_data = self.data[(self.wvl_axis > wvl_min) &
+                              (self.wvl_axis < wvl_max)]
+        region_wvl = self.wvl_axis[(self.wvl_axis > wvl_min) &
+                              (self.wvl_axis < wvl_max)]
+
+        return Cube(data=region_data, header=self.header, wvl_axis=region_wvl,
+                    wcs=self.wcs)
+
     def cont_sub(self):
         """Continuum subtract the spectral cube and create a continuum
         cube and continuum subtracted cube objects
