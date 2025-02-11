@@ -166,7 +166,12 @@ class Cube:
         region_wvl = self.wvl_axis[(self.wvl_axis > wvl_min) &
                               (self.wvl_axis < wvl_max)]
 
-        return Cube(data=region_data, header=self.header, wvl_axis=region_wvl,
+        # update header with new wvl range
+        header = self.header.copy()
+        header['CRVAL3'] = wvl_min
+        header['NAXIS3'] = len(region_wvl)
+
+        return Cube(data=region_data, header=header, wvl_axis=region_wvl,
                     wcs=self.wcs)
 
     def line_cube(self, line, n_lws):
