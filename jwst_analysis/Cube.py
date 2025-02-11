@@ -142,7 +142,7 @@ class Cube:
             corresponds to
         """
         self.line = line
-        self.header['REST_WVL'] = line.wvl
+        self.header['REST_WVL'] = line.rest_wvl
         self.header['SPECIES'] = line.species
         self.header['TRANSITION'] = line.transition
         self.header['LINE_WIDTH'] = line.line_width
