@@ -1,10 +1,10 @@
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
+from astropy.stats import sigma_clip
 import astropy.units as u
 from astropy.constants import c
 from scipy.signal import correlate2d
-import bettermoments as bm
 from .Line import Line
 from .Spectrum import Spectrum
 
@@ -233,40 +233,40 @@ class Cube:
 
         return cont_cube, cont_sub_cube
 
-    def collapse(self, moment):
-        """Collapse the spectral cube to create a moment map.
-        There must be a line attached to the cube.
+    def collapse(self, moments):
+        """Collapse the data cube to create moment maps
 
         Args:
-            moment (int): which method should be used to collapse
-            the data (0,1,8)
+            moments (list): the moments the method will return (0,1,8)
 
         Returns:
-            M (np.ndarray): The resulting moment map
-            dM (np.ndarray): Error on the map
+            moment_list: list of the requested moment maps
         """
 
-        # spectrally smooth the data
-        smoothed_data = bm.smooth_data(data=self.data, smooth=3, polyorder=0)
-        # estimate the noise
-        rms = bm.estimate_RMS(data=smoothed_data, N=10)
-        # create a threshold mask
-        mask = bm.get_threshold_mask(data=smoothed_data, clip=2.0,
-                                     smooth_threshold_mask=2)
-        masked_data = smoothed_data * mask
+        dv = self.vel_axis[1] - self.vel_axis[0] # velocity spacing
+        M0 = np.nansum(self.data, axis=0) * dv
 
-        # collapse based on the desired moment map
-        if moment == 0:
-            M, dM = bm.collapse_zeroth(velax=self.vel_axis, data=masked_data,
-                                       rms=rms)
-        elif moment == 1:
-            M, dM = bm.collapse_first(velax=self.vel_axis, data=masked_data,
-                                       rms=rms)
-        elif moment == 8:
-            M, dM = bm.collapse_eighth(velax=self.vel_axis, data=masked_data,
-                                       rms=rms)
+        # next, calculate 1st moment map
+        # create a velocity cube, same shape as data where each channel is just
+        # filled with that channels velocity
+        vel_cube = np.zeros(self.data.shape)
+        for i in range(len(self.data)):
+            vel_cube[i] = np.full(M0.shape, self.vel_axis[i])
+        M1 = (np.nansum(vel_cube * self.data, axis=0) * dv) / M0
 
-        return M, dM
+        # last, get moment 8 map (peak intensity)
+        M8 = np.nanmax(self.data, axis=0)
+        # return the requested maps
+        return_list = []
+        if 0 in moments:
+            return_list.append(M0)
+        if 1 in moments:
+            return_list.append(M1)
+        if 8 in moments:
+            return_list.append(M8)
+
+        return return_list
+
 
 
     @classmethod
