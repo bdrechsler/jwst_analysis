@@ -9,12 +9,12 @@ from .Line import Line
 from .Spectrum import Spectrum
 
 class Cube:
-    def __init__(self, data, header, wvl_axis, wcs):
+    def __init__(self, data, header, wvl_axis):
 
         self.data = data
         self.header = header
         self.wvl_axis = wvl_axis
-        self.wcs = wcs
+        self.wcs = WCS(header)
 
         # check if a line has been attached to this cube
         header_keys = list(header.keys())
@@ -128,11 +128,9 @@ class Cube:
         combined_header['CRPIX1'] = ref_1 + x_shift
         combined_header['CRPIX2'] = ref_2 + y_shift
 
-        combined_wcs = WCS(combined_header)
-
         # create a return a new cube object
         return Cube(data=combined_cube, header=combined_header,
-                    wvl_axis=new_cube.wvl_axis, wcs=combined_wcs)
+                    wvl_axis=new_cube.wvl_axis)
 
     def attach_line(self, line):
         """Attach a line object to this spectral cube
@@ -171,8 +169,7 @@ class Cube:
         header['CRVAL3'] = wvl_min
         header['NAXIS3'] = len(region_wvl)
 
-        return Cube(data=region_data, header=header, wvl_axis=region_wvl,
-                    wcs=self.wcs)
+        return Cube(data=region_data, header=header, wvl_axis=region_wvl)
 
     def line_cube(self, line, n_lws):
         """Get a spectral region around a given line
@@ -227,13 +224,13 @@ class Cube:
 
         # create continuum and continuum subtracted cube objects
         cont_cube = Cube(data=cont_data, header=self.header,
-                         wvl_axis=self.wvl_axis, wcs=self.wcs)
+                         wvl_axis=self.wvl_axis)
         cont_sub_cube = Cube(data=cont_sub_data, header=self.header,
-                         wvl_axis=self.wvl_axis, wcs=self.wcs)
+                         wvl_axis=self.wvl_axis)
 
         return cont_cube, cont_sub_cube
 
-    def collapse(self, moments):
+    def collapse(self, moments, sigma_thresh=3.):
         """Collapse the data cube to create moment maps
 
         Args:
@@ -243,8 +240,24 @@ class Cube:
             moment_list: list of the requested moment maps
         """
 
+        # check if a line has been attached
+        if 'REST_WVL' not in list(self.header.keys()):
+            print("Attatch a line to this spectral cube before making maps")
+            return
+
         dv = self.vel_axis[1] - self.vel_axis[0] # velocity spacing
         M0 = np.nansum(self.data, axis=0) * dv
+        # estimate noise on M0
+        # use first and last two channels to estimate sigma for a
+        # line free channel
+        sigmas = [np.nanstd(self.data[i]) for i in range(-2, 2)]
+        sigma_chan = np.mean(sigmas)
+        # error propogation to get error on M0
+        sigma_M0 = np.sqrt(len(self.data)) * sigma_chan * dv
+        thresh = 3 * sigma_M0
+        # create a mask for the M1 map
+        mask = np.ones(M0.shape)
+        mask[(M0 > -thresh) & (M0 < thresh)] = 0
 
         # next, calculate 1st moment map
         # create a velocity cube, same shape as data where each channel is just
@@ -253,6 +266,7 @@ class Cube:
         for i in range(len(self.data)):
             vel_cube[i] = np.full(M0.shape, self.vel_axis[i])
         M1 = (np.nansum(vel_cube * self.data, axis=0) * dv) / M0
+        M1 *= mask
 
         # last, get moment 8 map (peak intensity)
         M8 = np.nanmax(self.data, axis=0)
@@ -294,16 +308,8 @@ class Cube:
         nchan = header["NAXIS3"]
         wvl_axis = (np.arange(nchan) * wvl_step) + start_wvl
 
-        return cls(data=data, header= header, wvl_axis=wvl_axis, wcs=wcs)
+        return cls(data=data, header= header, wvl_axis=wvl_axis)
 
     def write(self, filename):
         hdu = fits.PrimaryHDU(data=self.data, header=self.header)
         hdu.writeto(filename, overwrite=True)
-
-
-
-
-
-
-
-
