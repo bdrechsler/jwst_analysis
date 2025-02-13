@@ -1,7 +1,7 @@
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
-def get_FOV(cube, pos=(69.9744522, 26.0526275), width=0.00119):
+def get_FOV(cube, pos, width):
     """Get the pixel bounds to match the provided FOV
 
     Args:
@@ -13,7 +13,7 @@ def get_FOV(cube, pos=(69.9744522, 26.0526275), width=0.00119):
         left, right, down up: pixel bounds of given FOV
     """
     # get center of FOV as a sky coordinate
-    pos_sky = SkyCoord(pos[0]*u.um, pos[1]*u.um, frame='ircs')
+    pos_sky = SkyCoord(pos[0]*u.deg, pos[1]*u.deg, frame='icrs')
     # convert to a pixel position
     pos_pix = pos_sky.to_pixel(cube.wcs.celestial)
     # convert the size of FOV to pixels
