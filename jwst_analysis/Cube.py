@@ -5,6 +5,7 @@ from astropy.stats import sigma_clip
 import astropy.units as u
 from astropy.constants import c
 from scipy.signal import correlate2d
+import photutils.aperture as ap
 from .Line import Line
 from .Spectrum import Spectrum
 
@@ -144,6 +145,63 @@ class Cube:
         self.header['SPECIES'] = line.species
         self.header['TRANSITION'] = line.transition
         self.header['LINE_WIDTH'] = line.line_width
+
+    def extract_spectrum(self, aperture_dict):
+        r"""
+        Extract 1D spectrum from a dictionary of photutil apertures
+        and populate the spectra and aperture attributes
+
+        Args:
+            aperture_dict (dict): Dictionary to define apertures used to extract spectra.
+            In the format: {"name": aperture}, aperture can be a sky
+            or pixel aperture
+
+        Returns:
+            spectrum_dict (dict): Dictionary of extracted spectra
+
+        """
+
+        # iterate through all the apertures in the dictionary
+        for name, aperture in aperture_dict.items():
+            # check if provided aperture is a pixel or sky aperture and convert it accordingly
+            pixel_aps = {}
+            sky_aps = {}
+            if isinstance(aperture, ap.EllipticalAperture) or isinstance(
+                aperture, ap.CircularAperture
+            ):
+                pixel_aps[name] = aperture
+                sky_aps[name] = aperture.to_sky(self.wcs.celestial)
+            elif isinstance(aperture, ap.SkyEllipticalAperture) or isinstance(
+                aperture, ap.SkyCircularAperture
+            ):
+                pixel_aps[name] = aperture.to_pixel(self.wcs.celestial)
+                sky_aps[name] = aperture
+
+        spectrum_dict = {}
+        # iterate through all of the pixel apertures
+        for name, pix_ap in pixel_aps.items():
+            # create a mask
+            mask = pix_ap.to_mask(method="exact")
+
+            # initialize spectrum array
+            spectrum_flux = np.zeros(len(self.data))
+
+            # extract the 1D spectrum
+            for i in range(len(spectrum_flux)):
+                # get data of current channel
+                chan = self.data[i]
+                # extract the data in the aperture
+                ap_data = mask.get_values(chan)
+                # sum to get value for spectrum
+                spectrum_flux[i] = np.nansum(ap_data)
+
+            # add to the dictionary of 1D spectra
+            spectrum = Spectrum(wvl_axis=self.wvl_axis, flux=spectrum_flux)
+            spectrum_dict[name] = spectrum
+
+        # sum left and right apertures to get total spectrum
+        spectrum_dict["total"] = spectrum_dict["left"] + spectrum_dict["right"]
+        return spectrum_dict
 
     def spectral_region(self, center_wvl, region_width):
         """Get a spectral region (slab) of the spectral cube
