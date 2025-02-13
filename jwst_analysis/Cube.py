@@ -162,10 +162,10 @@ class Cube:
         """
 
         # iterate through all the apertures in the dictionary
+        pixel_aps = {}
+        sky_aps = {}
         for name, aperture in aperture_dict.items():
             # check if provided aperture is a pixel or sky aperture and convert it accordingly
-            pixel_aps = {}
-            sky_aps = {}
             if isinstance(aperture, ap.EllipticalAperture) or isinstance(
                 aperture, ap.CircularAperture
             ):
@@ -177,7 +177,7 @@ class Cube:
                 pixel_aps[name] = aperture.to_pixel(self.wcs.celestial)
                 sky_aps[name] = aperture
 
-        spectrum_dict = {}
+        spectrum_dict =  {}
         # iterate through all of the pixel apertures
         for name, pix_ap in pixel_aps.items():
             # create a mask
@@ -185,7 +185,6 @@ class Cube:
 
             # initialize spectrum array
             spectrum_flux = np.zeros(len(self.data))
-
             # extract the 1D spectrum
             for i in range(len(spectrum_flux)):
                 # get data of current channel
