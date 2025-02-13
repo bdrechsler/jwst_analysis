@@ -288,14 +288,16 @@ class Cube:
 
         return cont_cube, cont_sub_cube
 
-    def collapse(self, moments, sigma_thresh=3.):
+    def collapse(self, sigma_thresh=3.):
         """Collapse the data cube to create moment maps
 
         Args:
             moments (list): the moments the method will return (0,1,8)
+            sigma_threh (float): sigma clipping threshold for M1 mask
 
         Returns:
-            moment_list: list of the requested moment maps
+            moment_dict (dict): dictionary of the moment 0, 1, 8 maps,
+            and the uncertainty sigma_M0
         """
 
         # check if a line has been attached
@@ -329,15 +331,8 @@ class Cube:
         # last, get moment 8 map (peak intensity)
         M8 = np.nanmax(self.data, axis=0)
         # return the requested maps
-        return_list = []
-        if 0 in moments:
-            return_list.append(M0)
-        if 1 in moments:
-            return_list.append(M1)
-        if 8 in moments:
-            return_list.append(M8)
 
-        return return_list
+        return {"0":M0, "1":M1, "8":M8, "sigma_M0": sigma_M0}
 
     @classmethod
     def read(cls, filename, extname='SCI'):
