@@ -6,6 +6,15 @@ class Spectrum:
         self.wvl_axis = wvl_axis
         self.flux = flux
 
+    def __add__(self, other):
+        if self.wvl_axis != other.wvl_aix:
+            print("Spectral axis are not matched, cannot add.")
+            return
+        else:
+            summed_flux = self.flux + other.flux
+            return Spectrum(wvl_axis=self.wvl_axis, flux=summed_flux)
+
+
     def fit_continuum(self, line=None, med_kernel=3, fit_order=3):
         """Fit the continuum of the spectrum, ignore line emission
 
