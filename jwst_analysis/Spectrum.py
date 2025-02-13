@@ -7,7 +7,7 @@ class Spectrum:
         self.flux = flux
 
     def __add__(self, other):
-        if self.wvl_axis != other.wvl_aix:
+        if (self.wvl_axis != other.wvl_axis).any():
             print("Spectral axis are not matched, cannot add.")
             return
         else:
