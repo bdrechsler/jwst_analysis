@@ -3,6 +3,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from astropy.stats import sigma_clip
 import astropy.units as u
+from astropy.coordinates import SkyCoord
 from astropy.constants import c
 from scipy.signal import correlate2d
 import photutils.aperture as ap
@@ -337,8 +338,6 @@ class Cube:
             return_list.append(M8)
 
         return return_list
-
-
 
     @classmethod
     def read(cls, filename, extname='SCI'):
