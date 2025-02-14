@@ -328,11 +328,14 @@ class Cube:
         M1 = (np.nansum(vel_cube * self.data, axis=0) * dv) / M0
         M1 *= mask
 
-        # last, get moment 8 map (peak intensity)
+        # get moment 8 map (peak intensity)
         M8 = np.nanmax(self.data, axis=0)
+
+        # generate a median map
+        median = np.nanmedian(self.data, axis=0)
         # return the requested maps
 
-        return {"0":M0, "1":M1, "8":M8, "sigma_M0": sigma_M0}
+        return {"0":M0, "1":M1, "8":M8, "median": median}
 
     @classmethod
     def read(cls, filename, extname='SCI'):
