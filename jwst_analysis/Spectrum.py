@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.ndimage import median_filter
+from astropy.modeling import models, fitting
 
 class Spectrum:
     def __init__(self, wvl_axis, flux):
@@ -45,3 +46,15 @@ class Spectrum:
 
         return Spectrum(wvl_axis=self.wvl_axis,
                         flux=model_cont_flux(self.wvl_axis))
+
+    def fit_gaussian(self, line):
+        # initial guess of parameters
+        amp = np.max(self.flux)
+        mean = line.rest_wvl
+        stddev = line.line_width / 3.
+        g_init = models.Gaussian1D(amplitude=amp, mean=mean, stddev=stddev)
+        # fit the gaussian to the data
+        fitter = fitting.TRFLSQFitter()
+        g = fitter(g_init, self.wvl_axis, self.flux)
+        # return the gaussian
+        return g
