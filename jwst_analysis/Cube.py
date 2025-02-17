@@ -154,8 +154,7 @@ class Cube:
 
         Args:
             aperture_dict (dict): Dictionary to define apertures used to extract spectra.
-            In the format: {"name": aperture}, aperture can be a sky
-            or pixel aperture
+            In the format: {"name": aperture}, apertures should be sky_apertues
 
         Returns:
             spectrum_dict (dict): Dictionary of extracted spectra
@@ -164,19 +163,9 @@ class Cube:
 
         # iterate through all the apertures in the dictionary
         pixel_aps = {}
-        sky_aps = {}
         for name, aperture in aperture_dict.items():
             # check if provided aperture is a pixel or sky aperture and convert it accordingly
-            if isinstance(aperture, ap.EllipticalAperture) or isinstance(
-                aperture, ap.CircularAperture
-            ):
-                pixel_aps[name] = aperture
-                sky_aps[name] = aperture.to_sky(self.wcs.celestial)
-            elif isinstance(aperture, ap.SkyEllipticalAperture) or isinstance(
-                aperture, ap.SkyCircularAperture
-            ):
-                pixel_aps[name] = aperture.to_pixel(self.wcs.celestial)
-                sky_aps[name] = aperture
+            pixel_aps[name] = aperture.to_pixel(self.wcs.celestial)
 
         spectrum_dict =  {}
         # iterate through all of the pixel apertures
